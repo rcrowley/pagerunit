@@ -1,0 +1,38 @@
+#!/usr/bin/env python
+
+"""
+Run the given PagerUnit tests, possibly in an infinite loop.
+"""
+
+import logging
+import optparse
+import sys
+
+logging.basicConfig(format='pagerunit: %(message)s', level=logging.INFO)
+
+import pagerunit
+
+parser = optparse.OptionParser('Usage: %prog [-l] [-d <secs>] [-q] <pathname>')
+parser.add_option('-l', '--loop',
+                  dest='loop',
+                  default=False,
+                  action='store_true',
+                  help='loop forever')
+parser.add_option('-q', '--quiet',
+                  dest='quiet',
+                  default=False,
+                  action='store_true',
+                  help='operate quietly')
+options, args = parser.parse_args()
+
+if options.quiet:
+    logging.root.setLevel(logging.CRITICAL)
+
+if 0 == len(args):
+    parser.print_usage()
+    sys.exit(1)
+
+if options.loop:
+    pagerunit.PagerUnit(args).loop()
+else:
+    pagerunit.PagerUnit(args).run()
