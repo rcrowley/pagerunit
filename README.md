@@ -10,10 +10,12 @@ Usage
 
 Configure PagerUnit so it can send email in `/etc/pagerunit.cfg` or `~/.pagerunit.cfg`:
 
-	[default]
+	[mail]
 	address = recipient@example.com
-	mail_username = sender@example.com
-	mail_password = password
+	password = password
+	port = 587
+	server = smtp.gmail.com
+	username = sender@example.com
 
 Define some tests a la [Nose](http://somethingaboutorange.com/mrl/projects/nose/1.0.0/):
 
