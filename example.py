@@ -2,6 +2,8 @@
 Trivial examples for Pager Unit.
 """
 
+from pagerunit.decorators import *
+
 
 def foo():
     """

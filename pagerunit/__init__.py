@@ -119,6 +119,8 @@ class PagerUnit(object):
             for attr in (getattr(units, attrname) for attrname in dir(units)):
                 if types.FunctionType != type(attr):
                     continue
+                if 'units' != attr.__module__:
+                    continue
                 self.unit(attr)
 
     def unit(self, f):
