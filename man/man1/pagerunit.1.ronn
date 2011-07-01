@@ -1,0 +1,25 @@
+pagerunit(1) -- a simple Nagios alternative made to look like unit tests
+========================================================================
+
+## SYNOPSIS
+
+## DESCRIPTION
+
+## OPTIONS
+
+## FILES
+
+* `/etc/pagerunit.cfg`, `~/.pagerunit.cfg`:
+  PagerUnit's configuration file, where mail server information is stored.  See `pagerunit`(5).
+
+## THEME SONG
+
+Beirut - "Elephant Gun"
+
+## AUTHOR
+
+Richard Crowley <r@rcrowley.org>
+
+## SEE ALSO
+
+`pagerunit`(5) documents the configuration file format.  `pagerunit`(7) documents the Python library.

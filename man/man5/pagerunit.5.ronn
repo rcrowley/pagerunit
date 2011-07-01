@@ -1,0 +1,20 @@
+pagerunit(5) -- a simple Nagios alternative made to look like unit tests
+========================================================================
+
+## SYNOPSIS
+
+## DESCRIPTION
+
+## OPTIONS
+
+## THEME SONG
+
+Beirut - "Elephant Gun"
+
+## AUTHOR
+
+Richard Crowley <r@rcrowley.org>
+
+## SEE ALSO
+
+`pagerunit`(1) documents the command-line tool.  `pagerunit`(7) documents the Python library.
