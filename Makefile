@@ -63,7 +63,7 @@ build: build-deb build-pypi
 build-deb:
 	make install prefix=/usr DESTDIR=debian
 	fpm -s dir -t deb -C debian \
-		-n pagerunit -v $(VERSION)-$(BUILD) -a all \
+		-n pagerunit -v $(VERSION)-$(BUILD)py$(PYTHON_VERSION) -a all \
 		-d python$(PYTHON_VERSION) \
 		-m "Richard Crowley <r@rcrowley.org>" \
 		--url "https://github.com/rcrowley/pagerunit" \
