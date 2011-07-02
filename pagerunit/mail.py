@@ -10,6 +10,8 @@ def _strip(s):
     """
     Strip whitespace from a multiline string.
     """
+    if s is None:
+        return ''
     return ''.join([line.strip() + '\n' for line in s.strip().splitlines()])
 
 class Mail(object):
