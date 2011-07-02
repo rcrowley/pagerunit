@@ -3,16 +3,6 @@ Send problem and recovery emails through the configured SMTP gateway.
 """
 
 import smtplib
-import socket
-import traceback
-
-def _strip(s):
-    """
-    Strip whitespace from a multiline string.
-    """
-    if s is None:
-        return ''
-    return ''.join([line.strip() + '\n' for line in s.strip().splitlines()])
 
 class Mail(object):
     """
@@ -24,22 +14,6 @@ class Mail(object):
         self.port = port
         self.username = username
         self.password = password
-
-    def problem(self, address, name, doc, exc):
-        """
-        Send a problem email.
-        """
-        self.send(address,
-                  'PROBLEM {0}'.format(name),
-                  '{0}: {1}\n\n{2}'.format(socket.getfqdn(), exc, _strip(doc)))
-
-    def recovery(self, address, name, doc):
-        """
-        Send a recovery email.
-        """
-        self.send(address,
-                  'RECOVERY {0}'.format(name),
-                  '{0}\n\n{1}'.format(socket.getfqdn(), _strip(doc)))
 
     def send(self, address, subject, body):
         """

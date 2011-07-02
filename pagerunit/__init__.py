@@ -9,11 +9,21 @@ import inspect
 import logging
 import os
 import os.path
+import socket
+import sys
 import time
 import traceback
 import types
 
 import mail
+
+def _strip(s):
+    """
+    Strip whitespace from a multiline string.
+    """
+    if s is None:
+        return ''
+    return ''.join([line.strip() + '\n' for line in s.strip().splitlines()])
 
 class PagerUnit(object):
     """
@@ -73,7 +83,13 @@ class PagerUnit(object):
             self.run()
             time.sleep(secs)
 
-    def problem(self, f, exc):
+    _problem_subject = 'PROBLEM {name} on {fqdn}'.format
+    _problem_body = '''{exc}
+
+\t{line}
+
+{doc}'''.format
+    def problem(self, f, exc, tb):
         """
         Add this problem to the runtime state and send a problem email.
         If the state file already exists, let the failure pass silently
@@ -84,17 +100,22 @@ class PagerUnit(object):
                                       f.__name__),
                          os.O_WRONLY | os.O_CREAT | os.O_EXCL,
                          0o644)
-            os.write(fd, traceback.format_exc(exc))
-            os.close(fd)
             logging.info('{0} has a problem'.format(f.__name__))
-            self.mail.problem(self.cfg.get('mail', 'address'),
-                              f.__name__,
-                              f.__doc__,
-                              exc)
+            address = self.cfg.get('mail', 'address')
+            subject = self._problem_subject(name=f.__name__,
+                                            fqdn=socket.getfqdn())
+            body = self._problem_body(exc=exc or '(no explanation)',
+                                      line=traceback.extract_tb(tb)[-1][-1],
+                                      doc=_strip(f.__doc__))
+            self.mail.send(address, subject, body)
+            os.write(fd, body)
+            os.close(fd)
         except OSError as e:
             if errno.EEXIST != e.errno:
                 raise e
 
+    _recovery_subject = 'RECOVERY {name} on {fqdn}'.format
+    _recovery_body = '{doc}'.format
     def recovery(self, f):
         """
         Remove this now-recovered problem from the runtime state and send
@@ -104,9 +125,11 @@ class PagerUnit(object):
             os.unlink(os.path.join(self.cfg.get('state', 'dirname'),
                                    f.__name__))
             logging.info('{0} recovered'.format(f.__name__))
-            self.mail.recovery(self.cfg.get('mail', 'address'),
-                               f.__name__,
-                               f.__doc__)
+            address = self.cfg.get('mail', 'address')
+            subject = self._recovery_subject(name=f.__name__,
+                                             fqdn=socket.getfqdn())
+            body = self._recovery_body(doc=_strip(f.__doc__))
+            self.mail.send(address, subject, body)
         except OSError as e:
             if errno.ENOENT != e.errno:
                 raise e
@@ -135,6 +158,6 @@ class PagerUnit(object):
             f()
             self.recovery(f)
         except AssertionError as e:
-            self.problem(f, e)
+            self.problem(f, e, sys.exc_info()[2])
         except Exception as e:
-            self.problem(f, e)
+            self.problem(f, e, sys.exc_info()[2])
