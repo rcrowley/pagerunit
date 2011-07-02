@@ -5,6 +5,7 @@ PagerUnit, a simple Nagios alternative made to look like unit tests.
 from ConfigParser import ConfigParser
 import errno
 import imp
+import inspect
 import logging
 import os
 import os.path
@@ -120,6 +121,9 @@ class PagerUnit(object):
                 if types.FunctionType != type(attr):
                     continue
                 if 'units' != attr.__module__:
+                    continue
+                spec = inspect.getargspec(attr)
+                if 0 < len(spec[0]) or spec[1] is not None or spec[2] is not None:
                     continue
                 self.unit(attr)
 
