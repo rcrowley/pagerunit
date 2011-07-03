@@ -147,7 +147,9 @@ class PagerUnit(object):
                 if 'units' != attr.__module__:
                     continue
                 spec = inspect.getargspec(attr)
-                if 0 < len(spec[0]) or spec[1] is not None or spec[2] is not None:
+                if 0 < len(spec[0]) \
+                    or spec[1] is not None \
+                    or spec[2] is not None:
                     continue
                 self.unit(attr)
 
