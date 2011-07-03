@@ -104,7 +104,7 @@ class PagerUnit(object):
             address = self.cfg.get('mail', 'address')
             subject = self._problem_subject(name=f.__name__,
                                             fqdn=socket.getfqdn())
-            body = self._problem_body(exc=exc or '(no explanation)',
+            body = self._problem_body(exc=str(exc) or '(no explanation)',
                                       line=traceback.extract_tb(tb)[-1][-1],
                                       doc=_strip(f.__doc__))
             self.mail.send(address, subject, body)
