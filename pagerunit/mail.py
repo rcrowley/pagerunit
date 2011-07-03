@@ -10,10 +10,16 @@ class Mail(object):
     """
 
     def __init__(self, server, port, username, password):
-        self.server = server
-        self.port = port
+        self.smtp = smtplib.SMTP(server, port)
         self.username = username
         self.password = password
+        self.smtp.ehlo(self.username)
+        self.smtp.starttls()
+        self.smtp.ehlo(self.username)
+        self.smtp.login(self.username, self.password)
+
+    def __del__(self):
+        self.smtp.quit()
 
     def send(self, address, subject, body):
         """
@@ -21,14 +27,8 @@ class Mail(object):
 
         Based on <http://exchange.nagios.org/directory/Plugins/Uncategorized/Operating-Systems/Linux/Nagios-Alerts-via-gmail-and-python/details>.
         """
-        s = smtplib.SMTP(self.server, self.port)
-        s.ehlo(self.username)
-        s.starttls()
-        s.ehlo(self.username)
-        s.login(self.username, self.password)
-        s.sendmail(self.username,
-                   address.split(','),
-                   'To: {0}\r\nSubject: {1}\r\n\r\n{2}'.format(address,
-                                                               subject,
-                                                               body))
-        s.quit()
+        self.smtp.sendmail(self.username,
+                           address.split(','),
+                           'To: {0}\r\nSubject: {1}\r\n\r\n{2}'.format(address,
+                                                                       subject,
+                                                                       body))
