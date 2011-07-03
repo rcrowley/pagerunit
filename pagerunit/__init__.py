@@ -54,11 +54,10 @@ class PagerUnit(object):
                                                'server': 'smtp.gmail.com'})
             self._cfg.read(['/etc/pagerunit.cfg',
                             os.path.expanduser('~/.pagerunit.cfg')])
-            for section, option in (('mail', 'address'),
-                                    ('mail', 'password'),
-                                    ('mail', 'port'),
-                                    ('mail', 'server'),
-                                    ('mail', 'username'),
+            for section, option in (('smtp', 'password'),
+                                    ('smtp', 'port'),
+                                    ('smtp', 'server'),
+                                    ('smtp', 'username'),
                                     ('state', 'dirname')):
                 self._cfg.get(section, option)
         return self._cfg
@@ -69,10 +68,10 @@ class PagerUnit(object):
         Lazy-create the SMTP gateway.
         """
         if not hasattr(self, '_mail'):
-            self._mail = mail.Mail(self.cfg.get('mail', 'server'),
-                                   self.cfg.getint('mail', 'port'),
-                                   self.cfg.get('mail', 'username'),
-                                   self.cfg.get('mail', 'password'))
+            self._mail = mail.Mail(self.cfg.get('smtp', 'server'),
+                                   self.cfg.getint('smtp', 'port'),
+                                   self.cfg.get('smtp', 'username'),
+                                   self.cfg.get('smtp', 'password'))
         return self._mail
 
     def loop(self, secs=10):
@@ -102,14 +101,21 @@ class PagerUnit(object):
                          0o644)
             os.close(fd)
             logging.info('{0} has a problem'.format(f.__name__))
-            self.mail.send_template(self.cfg.get('mail', 'address'),
+            kwargs = dict(name=f.__name__,
+                          fqdn=socket.getfqdn(),
+                          exc=str(exc) or '(no explanation)',
+                          line=traceback.extract_tb(tb)[-1][-1],
+                          doc=_strip(f.__doc__))
+            if self.cfg.has_option('mail', 'address'):
+                self.mail.send_json(self.cfg.get('mail', 'address'),
                                     self._problem_subject,
                                     self._problem_body,
-                                    name=f.__name__,
-                                    fqdn=socket.getfqdn(),
-                                    exc=str(exc) or '(no explanation)',
-                                    line=traceback.extract_tb(tb)[-1][-1],
-                                    doc=_strip(f.__doc__))
+                                    **kwargs)
+            if self.cfg.has_option('sms', 'address'):
+                self.mail.send(self.cfg.get('sms', 'address'),
+                               None,
+                               self._problem_subject,
+                               **kwargs)
         except OSError as e:
             if errno.EEXIST != e.errno:
                 raise e
@@ -125,12 +131,19 @@ class PagerUnit(object):
             os.unlink(os.path.join(self.cfg.get('state', 'dirname'),
                                    f.__name__))
             logging.info('{0} recovered'.format(f.__name__))
-            self.mail.send_template(self.cfg.get('mail', 'address'),
+            kwargs = dict(name=f.__name__,
+                          fqdn=socket.getfqdn(),
+                          doc=_strip(f.__doc__))
+            if self.cfg.has_option('mail', 'address'):
+                self.mail.send_json(self.cfg.get('mail', 'address'),
                                     self._recovery_subject,
                                     self._recovery_body,
-                                    name=f.__name__,
-                                    fqdn=socket.getfqdn(),
-                                    doc=_strip(f.__doc__))
+                                    **kwargs)
+            if self.cfg.has_option('sms', 'address'):
+                self.mail.send(self.cfg.get('sms', 'address'),
+                               None,
+                               self._recovery_subject,
+                               **kwargs)
         except OSError as e:
             if errno.ENOENT != e.errno:
                 raise e

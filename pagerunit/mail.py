@@ -11,6 +11,7 @@ import smtplib
 
 class MIMEJSON(MIMEBase):
     """
+    A JSON-serialized object as an email.
     """
 
     def __init__(self, **kwargs):
@@ -39,25 +40,28 @@ class Mail(object):
     def __del__(self):
         self.smtp.quit()
 
-    def send(self, address, subject, body):
+    def send(self, address, subject, body, **kwargs):
         """
         Send an email through the configured SMTP gateway.
         """
-        m = MIMEText(body)
+        m = MIMEText(body.format(**kwargs))
         m['From'] = self.username
         m['To'] = address
-        m['Subject'] = subject
+        if subject is not None:
+            m['Subject'] = subject.format(**kwargs)
         self.smtp.sendmail(self.username, address.split(','), m.as_string())
 
-    def send_multipart(self, address, subject, *args):
+    def send_multipart(self, address, subject, *args, **kwargs):
         m = MIMEMultipart(_subparts=args)
         m['From'] = self.username
         m['To'] = address
-        m['Subject'] = subject
+        if subject is not None:
+            m['Subject'] = subject.format(**kwargs)
         self.smtp.sendmail(self.username, address.split(','), m.as_string())
 
-    def send_template(self, address, subject, body, **kwargs):
+    def send_json(self, address, subject, body, **kwargs):
         self.send_multipart(address,
-                            subject.format(**kwargs),
+                            subject,
                             MIMEText(body.format(**kwargs)),
-                            MIMEJSON(**kwargs))
+                            MIMEJSON(**kwargs),
+                            **kwargs)
