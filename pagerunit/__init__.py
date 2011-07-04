@@ -217,9 +217,9 @@ class PagerUnit(object):
             and self.cfg.has_option('sms', 'address'):
 
             # Split the results into problems and recoveries.
-            problems = ', '.join([r for r in results
+            problems = ', '.join([r['name'] for r in results
                                   if 'exc' in r]) or '(none)'
-            recoveries = ', '.join([r for r in results
+            recoveries = ', '.join([r['name'] for r in results
                                     if 'exc' not in r]) or '(none)'
 
             # Send the batch as a single message.
