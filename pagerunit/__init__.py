@@ -26,8 +26,9 @@ DEFAULTS = {'mail': {'batch': False,
                      'recovery_body': '{doc}',
                      'recovery_subject': 'RECOVERY {name} on {fqdn}'},
             'sms': {'batch': False,
-                    'problem': 'PROBLEM {name} on {fqdn}',
-                    'recovery': 'RECOVERY {name} on {fqdn}'},
+                    'batch_body': 'PROBLEMS: {problems}; RECOVERIES: {recoveries} on {fqdn}',
+                    'problem_body': 'PROBLEM {name} on {fqdn}',
+                    'recovery_body': 'RECOVERY {name} on {fqdn}'},
             'smtp': {'port': 587,
                      'server': 'smtp.gmail.com'},
             'state': {'dirname': '/var/run/pagerunit'}}
@@ -126,7 +127,7 @@ class PagerUnit(object):
         if self.cfg.has_option('sms', 'address'):
             self.mail.send(self.cfg.get('sms', 'address'),
                            None,
-                           self.cfg.get('sms', 'problem'),
+                           self.cfg.get('sms', 'problem_body'),
                            **kwargs)
         return kwargs
 
@@ -155,7 +156,7 @@ class PagerUnit(object):
         if self.cfg.has_option('sms', 'address'):
             self.mail.send(self.cfg.get('sms', 'address'),
                            None,
-                           self.cfg.get('sms', 'recovery'),
+                           self.cfg.get('sms', 'recovery_body'),
                            **kwargs)
         return kwargs
 
@@ -164,6 +165,8 @@ class PagerUnit(object):
         Run all of the tests once.  If batching is enabled for mail or SMS,
         send the batch.
         """
+
+        # Run all of the tests once.  Gather all non-None results.
         results = []
         for pathname in self.pathnames:
             units = imp.load_source('units', pathname)
@@ -180,15 +183,15 @@ class PagerUnit(object):
                 result = self.unit(attr)
                 if result:
                     results.append(result)
-        problems = len([r for r in results if 'exc' in r])
-        recoveries = len([r for r in results if 'exc' not in r])
-        if self.cfg.getboolean('mail', 'batch'):
-            problem_body = self.cfg.get('mail', 'problem_body')
-            recovery_body = self.cfg.get('mail', 'recovery_body')
+
+        # If mail batching is requested and there is an address.
+        if self.cfg.getboolean('mail', 'batch') \
+            and self.cfg.has_option('mail', 'address'):
+
+            # Create a batch MIMEJSON part and a MIMEText part for each
+            # problem or recovery result.
             bodies = [mail.MIMEJSON(results, name='batch')]
             for r in results:
-                if r is None:
-                    continue
                 if 'exc' in r:
                     s, b = ('problem_subject', 'problem_body')
                 else:
@@ -196,14 +199,36 @@ class PagerUnit(object):
                 bodies.append(mail.mime_text(
                     self.cfg.get('mail', s) + '\n\n' + \
                     self.cfg.get('mail', b) + '\n\n', **r))
+
+            # Count the total number of problems and recoveries.
+            problems = len([r for r in results if 'exc' in r])
+            recoveries = len([r for r in results if 'exc' not in r])
+
+            # Send the batch as a single multipart message.
             self.mail.send_multipart(self.cfg.get('mail', 'address'),
                                      self.cfg.get('mail', 'batch_subject'),
                                      *bodies,
                                      fqdn=socket.getfqdn(),
                                      problems=problems,
                                      recoveries=recoveries)
-        if self.cfg.getboolean('sms', 'batch'):
-            pass
+
+        # If SMS batching is requested and there is an address.
+        if self.cfg.getboolean('sms', 'batch') \
+            and self.cfg.has_option('sms', 'address'):
+
+            # Split the results into problems and recoveries.
+            problems = ', '.join([r for r in results
+                                  if 'exc' in r]) or '(none)'
+            recoveries = ', '.join([r for r in results
+                                    if 'exc' not in r]) or '(none)'
+
+            # Send the batch as a single message.
+            self.mail.send(self.cfg.get('sms', 'address'),
+                           None,
+                           self.cfg.get('sms', 'batch_body'),
+                           fqdn=socket.getfqdn(),
+                           problems=problems,
+                           recoveries=recoveries)
 
     def unit(self, f):
         """
