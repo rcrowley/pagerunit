@@ -17,3 +17,11 @@ def bar():
     Docstring for bar.
     """
     assert False, 'Assertion for bar.'
+
+@disabled
+def baz():
+    pass
+
+@silent
+def quuz():
+    pass

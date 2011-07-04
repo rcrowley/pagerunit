@@ -19,6 +19,9 @@ clean:
 		man/man*/*.html
 	find . -name \*.pyc -delete
 
+test:
+	nosetests --with-coverage --cover-package=pagerunit
+
 install: install-bin install-lib install-man
 
 install-bin:

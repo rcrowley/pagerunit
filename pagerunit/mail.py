@@ -3,13 +3,13 @@ Send problem and recovery emails through the configured SMTP gateway.
 """
 
 import email
-from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
+from email.mime.nonmultipart import MIMENonMultipart
 from email.mime.text import MIMEText
 import json
 import smtplib
 
-class MIMEJSON(MIMEBase):
+class MIMEJSON(MIMENonMultipart):
     """
     A JSON-serialized object as an email.
     """
@@ -21,7 +21,7 @@ class MIMEJSON(MIMEBase):
         The object may be a list or a dict.  If it is a list, the assumption
         is that this is a batch and the filename reflects that.
         """
-        MIMEBase.__init__(self, 'application', 'json', charset='utf-8')
+        MIMENonMultipart.__init__(self, 'application', 'json', charset='utf-8')
         try:
             obj = args[0]
         except IndexError:
@@ -70,6 +70,7 @@ class Mail(object):
         if subject is not None:
             m['Subject'] = subject.format(**kwargs)
         self.smtp.sendmail(self.username, address.split(','), m.as_string())
+        return m
 
     def send_multipart(self, address, subject, *args, **kwargs):
         """
@@ -81,6 +82,7 @@ class Mail(object):
         if subject is not None:
             m['Subject'] = subject.format(**kwargs)
         self.smtp.sendmail(self.username, address.split(','), m.as_string())
+        return m
 
     def send_json(self, address, subject, body, **kwargs):
         """
@@ -88,8 +90,8 @@ class Mail(object):
         and the other the JSON-encoded raw data used to generated the
         human-readable part.
         """
-        self.send_multipart(address,
-                            subject,
-                            mime_text(body, **kwargs),
-                            mime_json(**kwargs),
-                            **kwargs)
+        return self.send_multipart(address,
+                                   subject,
+                                   mime_text(body, **kwargs),
+                                   mime_json(**kwargs),
+                                   **kwargs)
