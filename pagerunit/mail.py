@@ -14,12 +14,21 @@ class MIMEJSON(MIMEBase):
     A JSON-serialized object as an email.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
         MIMEBase.__init__(self, 'application', 'json', charset='utf-8')
         self.add_header('Content-Disposition',
                         'attachment',
-                        filename='{name}.json'.format(**kwargs))
-        self.set_payload(json.dumps(kwargs))
+                        filename='json.json') # FIXME Name for single parts.
+        try:
+            self.set_payload(json.dumps(args[0]))
+        except IndexError:
+            self.set_payload(json.dumps(kwargs))
+
+def mime_json(*args, **kwargs):
+    return MIMEJSON(*args, **kwargs)
+
+def mime_text(body, **kwargs):
+    return MIMEText(body.format(**kwargs))
 
 class Mail(object):
     """
@@ -44,7 +53,7 @@ class Mail(object):
         """
         Send an email through the configured SMTP gateway.
         """
-        m = MIMEText(body.format(**kwargs))
+        m = mime_text(body, **kwargs)
         m['From'] = self.username
         m['To'] = address
         if subject is not None:
@@ -52,6 +61,9 @@ class Mail(object):
         self.smtp.sendmail(self.username, address.split(','), m.as_string())
 
     def send_multipart(self, address, subject, *args, **kwargs):
+        """
+        Send a MIME multipart email through the configured SMTP gateway.
+        """
         m = MIMEMultipart(_subparts=args)
         m['From'] = self.username
         m['To'] = address
@@ -60,8 +72,13 @@ class Mail(object):
         self.smtp.sendmail(self.username, address.split(','), m.as_string())
 
     def send_json(self, address, subject, body, **kwargs):
+        """
+        Send a MIME multipart email with two parts, one human-readable
+        and the other the JSON-encoded raw data used to generated the
+        human-readable part.
+        """
         self.send_multipart(address,
                             subject,
-                            MIMEText(body.format(**kwargs)),
-                            MIMEJSON(**kwargs),
+                            mime_text(body, **kwargs),
+                            mime_json(**kwargs),
                             **kwargs)

@@ -19,13 +19,16 @@ import mail
 
 # ConfigParser defaults are a bit limited so PagerUnit rolls its own.  These
 # are placed before the config files are opened.
-DEFAULTS = {'mail': {'problem_body': '{exc}\n\n\t{line}\n\n{doc}',
+DEFAULTS = {'mail': {'batch': False,
+                     'batch_subject': '{problems} PROBLEMS, {recoveries} RECOVERIES on {fqdn}',
+                     'problem_body': '{exc}\n\n\t{line}\n\n{doc}',
                      'problem_subject': 'PROBLEM {name} on {fqdn}',
                      'recovery_body': '{doc}',
                      'recovery_subject': 'RECOVERY {name} on {fqdn}'},
-            'sms': {'problem': 'PROBLEM {name} on {fqdn}',
+            'sms': {'batch': False,
+                    'problem': 'PROBLEM {name} on {fqdn}',
                     'recovery': 'RECOVERY {name} on {fqdn}'},
-            'smtp': {'port': str(587),
+            'smtp': {'port': 587,
                      'server': 'smtp.gmail.com'},
             'state': {'dirname': '/var/run/pagerunit'}}
 
@@ -65,7 +68,7 @@ class PagerUnit(object):
             for section, options in DEFAULTS.iteritems():
                 self._cfg.add_section(section)
                 for option, value in options.iteritems():
-                    self._cfg.set(section, option, value)
+                    self._cfg.set(section, option, str(value))
             self._cfg.read(['/etc/pagerunit.cfg',
                             os.path.expanduser('~/.pagerunit.cfg')])
         return self._cfg
@@ -125,6 +128,7 @@ class PagerUnit(object):
                            None,
                            self.cfg.get('sms', 'problem'),
                            **kwargs)
+        return kwargs
 
     def recovery(self, f):
         """
@@ -153,11 +157,14 @@ class PagerUnit(object):
                            None,
                            self.cfg.get('sms', 'recovery'),
                            **kwargs)
+        return kwargs
 
     def run(self):
         """
-        Run all of the tests once.
+        Run all of the tests once.  If batching is enabled for mail or SMS,
+        send the batch.
         """
+        results = []
         for pathname in self.pathnames:
             units = imp.load_source('units', pathname)
             for attr in (getattr(units, attrname) for attrname in dir(units)):
@@ -170,7 +177,33 @@ class PagerUnit(object):
                     or spec[1] is not None \
                     or spec[2] is not None:
                     continue
-                self.unit(attr)
+                result = self.unit(attr)
+                if result:
+                    results.append(result)
+        problems = len([r for r in results if 'exc' in r])
+        recoveries = len([r for r in results if 'exc' not in r])
+        if self.cfg.getboolean('mail', 'batch'):
+            problem_body = self.cfg.get('mail', 'problem_body')
+            recovery_body = self.cfg.get('mail', 'recovery_body')
+            bodies = [mail.MIMEJSON(results, name='batch')]
+            for r in results:
+                if r is None:
+                    continue
+                if 'exc' in r:
+                    s, b = ('problem_subject', 'problem_body')
+                else:
+                    s, b = ('recovery_subject', 'recovery_body')
+                bodies.append(mail.mime_text(
+                    self.cfg.get('mail', s) + '\n\n' + \
+                    self.cfg.get('mail', b) + '\n\n', **r))
+            self.mail.send_multipart(self.cfg.get('mail', 'address'),
+                                     self.cfg.get('mail', 'batch_subject'),
+                                     *bodies,
+                                     fqdn=socket.getfqdn(),
+                                     problems=problems,
+                                     recoveries=recoveries)
+        if self.cfg.getboolean('sms', 'batch'):
+            pass
 
     def unit(self, f):
         """
@@ -178,8 +211,8 @@ class PagerUnit(object):
         """
         try:
             f()
-            self.recovery(f)
+            return self.recovery(f)
         except AssertionError as e:
-            self.problem(f, e, sys.exc_info()[2])
+            return self.problem(f, e, sys.exc_info()[2])
         except Exception as e:
-            self.problem(f, e, sys.exc_info()[2])
+            return self.problem(f, e, sys.exc_info()[2])
