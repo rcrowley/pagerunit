@@ -190,7 +190,7 @@ class PagerUnit(object):
 
             # Create a batch MIMEJSON part and a MIMEText part for each
             # problem or recovery result.
-            bodies = [mail.MIMEJSON(results, name='batch')]
+            bodies = [mail.MIMEJSON(results)]
             for r in results:
                 if 'exc' in r:
                     s, b = ('problem_subject', 'problem_body')

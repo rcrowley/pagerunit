@@ -15,14 +15,25 @@ class MIMEJSON(MIMEBase):
     """
 
     def __init__(self, *args, **kwargs):
+        """
+        Create a MIME part, JSON-serializing the given object.  The object
+        may be given as the only positional argument or as keyword arguments.
+        The object may be a list or a dict.  If it is a list, the assumption
+        is that this is a batch and the filename reflects that.
+        """
         MIMEBase.__init__(self, 'application', 'json', charset='utf-8')
+        try:
+            obj = args[0]
+        except IndexError:
+            obj = kwargs
+        try:
+            name = obj['name']
+        except TypeError:
+            name = 'batch'
         self.add_header('Content-Disposition',
                         'attachment',
-                        filename='json.json') # FIXME Name for single parts.
-        try:
-            self.set_payload(json.dumps(args[0]))
-        except IndexError:
-            self.set_payload(json.dumps(kwargs))
+                        filename='{0}.json'.format(name))
+        self.set_payload(json.dumps(obj))
 
 def mime_json(*args, **kwargs):
     return MIMEJSON(*args, **kwargs)
