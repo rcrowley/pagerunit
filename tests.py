@@ -73,6 +73,27 @@ baz
 baz  ''')
 
 
+def test_send():
+    m = p.mail.send('test1@example.com,test2@example.com',
+                    '{name} subject',
+                    '{name} body',
+                    name='test')
+    assert 'test@example.com' == m['From']
+    assert 'test1@example.com' == m['Reply-To'], m['Reply-To']
+    assert 'test1@example.com,test2@example.com' == m['To']
+
+def test_send_multipart():
+    m = p.mail.send_multipart('test1@example.com,test2@example.com',
+                              '{test} subject',
+                              mail.mime_text('{test} body 1', test='test'),
+                              mail.mime_text('{test} body 2', test='test'),
+                              test='test')
+    assert 'test@example.com' == m['From']
+    assert 'test1@example.com' == m['Reply-To'], m['Reply-To']
+    assert 'test1@example.com,test2@example.com' == m['To']
+    assert 2 == len(m.get_payload())
+
+
 def test_problem():
     def test():
         assert False, 'Test assertion.'
@@ -118,6 +139,7 @@ def test_batch_sms():
 MIME-Version: 1.0
 Content-Transfer-Encoding: 7bit
 From: test@example.com
+Reply-To: 5555555555@txt.att.net
 To: 5555555555@txt.att.net
 
 PROBLEMS: bar; RECOVERIES: (none) on vagrant.vagrantup.com''' == m.as_string()

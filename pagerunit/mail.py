@@ -64,24 +64,14 @@ class Mail(object):
         """
         Send an email through the configured SMTP gateway.
         """
+        addresses = [a.strip() for a in address.split(',')]
         m = mime_text(body, **kwargs)
         m['From'] = self.username
+        m['Reply-To'] = addresses[0]
         m['To'] = address
         if subject is not None:
             m['Subject'] = subject.format(**kwargs)
-        self.smtp.sendmail(self.username, address.split(','), m.as_string())
-        return m
-
-    def send_multipart(self, address, subject, *args, **kwargs):
-        """
-        Send a MIME multipart email through the configured SMTP gateway.
-        """
-        m = MIMEMultipart(_subparts=args)
-        m['From'] = self.username
-        m['To'] = address
-        if subject is not None:
-            m['Subject'] = subject.format(**kwargs)
-        self.smtp.sendmail(self.username, address.split(','), m.as_string())
+        self.smtp.sendmail(self.username, addresses, m.as_string())
         return m
 
     def send_json(self, address, subject, body, **kwargs):
@@ -95,3 +85,17 @@ class Mail(object):
                                    mime_text(body, **kwargs),
                                    mime_json(**kwargs),
                                    **kwargs)
+
+    def send_multipart(self, address, subject, *args, **kwargs):
+        """
+        Send a MIME multipart email through the configured SMTP gateway.
+        """
+        addresses = [a.strip() for a in address.split(',')]
+        m = MIMEMultipart(_subparts=args)
+        m['From'] = self.username
+        m['Reply-To'] = addresses[0]
+        m['To'] = address
+        if subject is not None:
+            m['Subject'] = subject.format(**kwargs)
+        self.smtp.sendmail(self.username, addresses, m.as_string())
+        return m
