@@ -11,7 +11,6 @@ import os
 import os.path
 import socket
 import sys
-import time
 import traceback
 import types
 
@@ -58,6 +57,29 @@ class PagerUnit(object):
             if errno.EEXIST != e.errno:
                 raise e
         self.pathnames = pathnames
+
+    def __call__(self):
+        """
+        Run all of the tests once and send batch messages.
+        """
+        results = []
+        for pathname in self.pathnames:
+            units = imp.load_source('units', pathname)
+            for attr in (getattr(units, attrname) for attrname in dir(units)):
+                if types.FunctionType != type(attr):
+                    continue
+                if 'units' != attr.__module__:
+                    continue
+                spec = inspect.getargspec(attr)
+                if 0 < len(spec[0]) \
+                    or spec[1] is not None \
+                    or spec[2] is not None:
+                    continue
+                result = self.unit(attr)
+                if result:
+                    results.append(result)
+        self.batch(results)
+        return results
 
     @property
     def cfg(self):
@@ -149,14 +171,6 @@ class PagerUnit(object):
                               problems=problems,
                               recoveries=recoveries)
 
-    def loop(self, secs=10):
-        """
-        Run the tests on an interval forever.
-        """
-        while True:
-            self.run()
-            time.sleep(secs)
-
     def problem(self, f, exc, tb):
         """
         Add this problem to the runtime state and send a problem message.
@@ -211,40 +225,19 @@ class PagerUnit(object):
         kwargs = dict(name=f.__name__,
                       fqdn=socket.getfqdn(),
                       doc=_strip(f.__doc__))
-        if self.cfg.has_option('mail', 'address'):
+        if self.cfg.getboolean('mail', 'batch') \
+            and self.cfg.has_option('mail', 'address'):
             self.mail.send_json(self.cfg.get('mail', 'address'),
                                 self.cfg.get('mail', 'recovery_subject'),
                                 self.cfg.get('mail', 'recovery_body'),
                                 **kwargs)
-        if self.cfg.has_option('sms', 'address'):
+        if self.cfg.getboolean('sms', 'batch') \
+            and self.cfg.has_option('sms', 'address'):
             self.mail.send(self.cfg.get('sms', 'address'),
                            None,
                            self.cfg.get('sms', 'recovery_body'),
                            **kwargs)
         return kwargs
-
-    def run(self):
-        """
-        Run all of the tests once and send batch messages.
-        """
-        results = []
-        for pathname in self.pathnames:
-            units = imp.load_source('units', pathname)
-            for attr in (getattr(units, attrname) for attrname in dir(units)):
-                if types.FunctionType != type(attr):
-                    continue
-                if 'units' != attr.__module__:
-                    continue
-                spec = inspect.getargspec(attr)
-                if 0 < len(spec[0]) \
-                    or spec[1] is not None \
-                    or spec[2] is not None:
-                    continue
-                result = self.unit(attr)
-                if result:
-                    results.append(result)
-        self.batch(results)
-        return results
 
     def unit(self, f):
         """

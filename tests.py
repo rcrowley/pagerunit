@@ -116,15 +116,15 @@ def test_steady():
     assert result is None
 
 
-def test_run():
+def test_call():
     teardown()
     setup()
-    results = p.run()
+    results = p()
     assert 1 == len(results), results
     return results
 
 def test_batch_mail():
-    m = p.batch_mail(test_run())
+    m = p.batch_mail(test_call())
     payload = m.get_payload()
     assert 2 == len(payload)
     assert ['application/json', 'text/plain'] == [part.get_content_type()
@@ -133,7 +133,7 @@ def test_batch_mail():
         == m['Subject']
 
 def test_batch_sms():
-    m = p.batch_sms(test_run())
+    m = p.batch_sms(test_call())
     assert 'text/plain' == m.get_content_type()
     assert '''Content-Type: text/plain; charset="us-ascii"
 MIME-Version: 1.0

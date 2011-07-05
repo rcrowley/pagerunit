@@ -7,6 +7,7 @@ Run the given PagerUnit tests, possibly in an infinite loop.
 import logging
 import optparse
 import sys
+import time
 
 logging.basicConfig(format='pagerunit: %(message)s', level=logging.INFO)
 
@@ -32,7 +33,10 @@ if 0 == len(args):
     parser.print_usage()
     sys.exit(1)
 
+p = pagerunit.PagerUnit(args)
 if options.loop:
-    pagerunit.PagerUnit(args).loop()
+    while True:
+        p()
+        time.sleep(10)
 else:
-    pagerunit.PagerUnit(args).run()
+    p()
