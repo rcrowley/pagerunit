@@ -1,5 +1,5 @@
 """
-Send problem and recovery emails through the configured SMTP gateway.
+Send problem and recovery messages through the configured SMTP gateway.
 """
 
 import email
@@ -41,9 +41,9 @@ def mime_json(*args, **kwargs):
 def mime_text(body, **kwargs):
     return MIMEText(body.format(**kwargs))
 
-class Mail(object):
+class SMTP(object):
     """
-    An SMTP gateway instance that knows how to format PagerUnit emails.
+    An SMTP gateway instance that knows how to format PagerUnit messages.
 
     Based on <http://exchange.nagios.org/directory/Plugins/Uncategorized/Operating-Systems/Linux/Nagios-Alerts-via-gmail-and-python/details>.
     """
@@ -62,7 +62,7 @@ class Mail(object):
 
     def send(self, address, subject, body, **kwargs):
         """
-        Send an email through the configured SMTP gateway.
+        Send a message through the configured SMTP gateway.
         """
         addresses = [a.strip() for a in address.split(',')]
         m = mime_text(body, **kwargs)
@@ -76,7 +76,7 @@ class Mail(object):
 
     def send_json(self, address, subject, body, **kwargs):
         """
-        Send a MIME multipart email with two parts, one human-readable
+        Send a MIME multipart message with two parts, one human-readable
         and the other the JSON-encoded raw data used to generated the
         human-readable part.
         """
@@ -88,7 +88,7 @@ class Mail(object):
 
     def send_multipart(self, address, subject, *args, **kwargs):
         """
-        Send a MIME multipart email through the configured SMTP gateway.
+        Send a MIME multipart message through the configured SMTP gateway.
         """
         addresses = [a.strip() for a in address.split(',')]
         m = MIMEMultipart(_subparts=args)

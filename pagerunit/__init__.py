@@ -14,7 +14,7 @@ import sys
 import traceback
 import types
 
-import mail
+import smtp
 
 # ConfigParser defaults are a bit limited so PagerUnit rolls its own.  These
 # are placed before the config files are opened.
@@ -97,16 +97,16 @@ class PagerUnit(object):
         return self._cfg
 
     @property
-    def mail(self):
+    def smtp(self):
         """
         Lazy-create the SMTP gateway.
         """
-        if not hasattr(self, '_mail'):
-            self._mail = mail.Mail(self.cfg.get('smtp', 'server'),
+        if not hasattr(self, '_smtp'):
+            self._smtp = smtp.SMTP(self.cfg.get('smtp', 'server'),
                                    self.cfg.getint('smtp', 'port'),
                                    self.cfg.get('smtp', 'username'),
                                    self.cfg.get('smtp', 'password'))
-        return self._mail
+        return self._smtp
 
     def batch(self, results):
         """
@@ -126,13 +126,13 @@ class PagerUnit(object):
 
         # Create a batch MIMEJSON part and a MIMEText part for each
         # problem or recovery result.
-        bodies = [mail.MIMEJSON(results)]
+        bodies = [smtp.MIMEJSON(results)]
         for r in results:
             if 'exc' in r:
                 s, b = ('problem_subject', 'problem_body')
             else:
                 s, b = ('recovery_subject', 'recovery_body')
-            bodies.append(mail.mime_text(
+            bodies.append(smtp.mime_text(
                 self.cfg.get('mail', s) + '\n\n' + \
                 self.cfg.get('mail', b) + '\n\n', **r))
 
@@ -141,7 +141,7 @@ class PagerUnit(object):
         recoveries = len([r for r in results if 'exc' not in r])
 
         # Send the batch as a single multipart message.
-        return self.mail.send_multipart(self.cfg.get('mail', 'address'),
+        return self.smtp.send_multipart(self.cfg.get('mail', 'address'),
                                         self.cfg.get('mail', 'batch_subject'),
                                         *bodies,
                                         fqdn=socket.getfqdn(),
@@ -164,7 +164,7 @@ class PagerUnit(object):
                                 if 'exc' not in r]) or '(none)'
 
         # Send the batch as a single message.
-        return self.mail.send(self.cfg.get('sms', 'address'),
+        return self.smtp.send(self.cfg.get('sms', 'address'),
                               None,
                               self.cfg.get('sms', 'batch_body'),
                               fqdn=socket.getfqdn(),
@@ -196,13 +196,15 @@ class PagerUnit(object):
                       exc=str(exc) or '(no explanation)',
                       line=traceback.extract_tb(tb)[-1][-1],
                       doc=_strip(f.__doc__))
-        if self.cfg.has_option('mail', 'address'):
-            self.mail.send_json(self.cfg.get('mail', 'address'),
+        if self.cfg.getboolean('mail', 'batch') \
+            and self.cfg.has_option('mail', 'address'):
+            self.smtp.send_json(self.cfg.get('mail', 'address'),
                                 self.cfg.get('mail', 'problem_subject'),
                                 self.cfg.get('mail', 'problem_body'),
                                 **kwargs)
-        if self.cfg.has_option('sms', 'address'):
-            self.mail.send(self.cfg.get('sms', 'address'),
+        if self.cfg.getboolean('sms', 'batch') \
+            and self.cfg.has_option('sms', 'address'):
+            self.smtp.send(self.cfg.get('sms', 'address'),
                            None,
                            self.cfg.get('sms', 'problem_body'),
                            **kwargs)
@@ -227,13 +229,13 @@ class PagerUnit(object):
                       doc=_strip(f.__doc__))
         if self.cfg.getboolean('mail', 'batch') \
             and self.cfg.has_option('mail', 'address'):
-            self.mail.send_json(self.cfg.get('mail', 'address'),
+            self.smtp.send_json(self.cfg.get('mail', 'address'),
                                 self.cfg.get('mail', 'recovery_subject'),
                                 self.cfg.get('mail', 'recovery_body'),
                                 **kwargs)
         if self.cfg.getboolean('sms', 'batch') \
             and self.cfg.has_option('sms', 'address'):
-            self.mail.send(self.cfg.get('sms', 'address'),
+            self.smtp.send(self.cfg.get('sms', 'address'),
                            None,
                            self.cfg.get('sms', 'recovery_body'),
                            **kwargs)

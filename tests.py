@@ -33,7 +33,7 @@ class Dummy(object):
 smtplib.SMTP = Dummy
 
 import pagerunit
-from pagerunit import mail
+from pagerunit import smtp
 
 
 p = pagerunit.PagerUnit(['example.py'])
@@ -55,14 +55,14 @@ def test_mime_json():
 MIME-Version: 1.0
 Content-Disposition: attachment; filename="test.json"
 
-{"name": "test"}''' == mail.mime_json(name='test').as_string()
+{"name": "test"}''' == smtp.mime_json(name='test').as_string()
 
 def test_mime_text():
     assert '''Content-Type: text/plain; charset="us-ascii"
 MIME-Version: 1.0
 Content-Transfer-Encoding: 7bit
 
-test''' == mail.mime_text('{test}', test='test').as_string()
+test''' == smtp.mime_text('{test}', test='test').as_string()
 
 def test_strip():
     assert '''foo
@@ -74,7 +74,7 @@ baz  ''')
 
 
 def test_send():
-    m = p.mail.send('test1@example.com,test2@example.com',
+    m = p.smtp.send('test1@example.com,test2@example.com',
                     '{name} subject',
                     '{name} body',
                     name='test')
@@ -83,10 +83,10 @@ def test_send():
     assert 'test1@example.com,test2@example.com' == m['To']
 
 def test_send_multipart():
-    m = p.mail.send_multipart('test1@example.com,test2@example.com',
+    m = p.smtp.send_multipart('test1@example.com,test2@example.com',
                               '{test} subject',
-                              mail.mime_text('{test} body 1', test='test'),
-                              mail.mime_text('{test} body 2', test='test'),
+                              smtp.mime_text('{test} body 1', test='test'),
+                              smtp.mime_text('{test} body 2', test='test'),
                               test='test')
     assert 'test@example.com' == m['From']
     assert 'test1@example.com' == m['Reply-To'], m['Reply-To']
