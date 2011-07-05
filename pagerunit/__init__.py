@@ -191,24 +191,40 @@ class PagerUnit(object):
             else:
                 raise e
         logging.info('{0} has a problem'.format(f.__name__))
-        kwargs = dict(name=f.__name__,
+        result = dict(name=f.__name__,
                       fqdn=socket.getfqdn(),
                       exc=str(exc) or '(no explanation)',
                       line=traceback.extract_tb(tb)[-1][-1],
                       doc=_strip(f.__doc__))
-        if self.cfg.getboolean('mail', 'batch') \
-            and self.cfg.has_option('mail', 'address'):
-            self.smtp.send_json(self.cfg.get('mail', 'address'),
-                                self.cfg.get('mail', 'problem_subject'),
-                                self.cfg.get('mail', 'problem_body'),
-                                **kwargs)
-        if self.cfg.getboolean('sms', 'batch') \
-            and self.cfg.has_option('sms', 'address'):
-            self.smtp.send(self.cfg.get('sms', 'address'),
-                           None,
-                           self.cfg.get('sms', 'problem_body'),
-                           **kwargs)
-        return kwargs
+        self.problem_mail(result)
+        self.problem_sms(result)
+        return result
+
+    def problem_mail(self, result):
+        """
+        Send this problem as a mail message.
+        """
+        if self.cfg.getboolean('mail', 'batch'):
+            return None
+        if not self.cfg.has_option('mail', 'address'):
+            return None
+        return self.smtp.send_json(self.cfg.get('mail', 'address'),
+                                   self.cfg.get('mail', 'problem_subject'),
+                                   self.cfg.get('mail', 'problem_body'),
+                                   **result)
+
+    def problem_sms(self, result):
+        """
+        Send this problem as an SMS message.
+        """
+        if self.cfg.getboolean('sms', 'batch'):
+            return None
+        if not self.cfg.has_option('sms', 'address'):
+            return None
+        return self.smtp.send(self.cfg.get('sms', 'address'),
+                              None,
+                              self.cfg.get('sms', 'problem_body'),
+                              **result)
 
     def recovery(self, f):
         """
@@ -224,22 +240,38 @@ class PagerUnit(object):
             else:
                 raise e
         logging.info('{0} recovered'.format(f.__name__))
-        kwargs = dict(name=f.__name__,
+        result = dict(name=f.__name__,
                       fqdn=socket.getfqdn(),
                       doc=_strip(f.__doc__))
-        if self.cfg.getboolean('mail', 'batch') \
-            and self.cfg.has_option('mail', 'address'):
-            self.smtp.send_json(self.cfg.get('mail', 'address'),
-                                self.cfg.get('mail', 'recovery_subject'),
-                                self.cfg.get('mail', 'recovery_body'),
-                                **kwargs)
-        if self.cfg.getboolean('sms', 'batch') \
-            and self.cfg.has_option('sms', 'address'):
-            self.smtp.send(self.cfg.get('sms', 'address'),
-                           None,
-                           self.cfg.get('sms', 'recovery_body'),
-                           **kwargs)
-        return kwargs
+        self.recovery_mail(result)
+        self.recovery_sms(result)
+        return result
+
+    def recovery_mail(self, result):
+        """
+        Send this recovery as a mail message.
+        """
+        if self.cfg.getboolean('mail', 'batch'):
+            return None
+        if not self.cfg.has_option('mail', 'address'):
+            return None
+        return self.smtp.send_json(self.cfg.get('mail', 'address'),
+                                   self.cfg.get('mail', 'recovery_subject'),
+                                   self.cfg.get('mail', 'recovery_body'),
+                                   **result)
+
+    def recovery_sms(self, result):
+        """
+        Send this recovery as an SMS message.
+        """
+        if self.cfg.getboolean('sms', 'batch'):
+            return None
+        if not self.cfg.has_option('sms', 'address'):
+            return None
+        return self.smtp.send(self.cfg.get('sms', 'address'),
+                              None,
+                              self.cfg.get('sms', 'recovery_body'),
+                              **result)
 
     def unit(self, f):
         """
