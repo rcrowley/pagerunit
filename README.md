@@ -10,6 +10,8 @@ Configure PagerUnit so it can send email in `/etc/pagerunit.cfg` or `~/.pageruni
 
 	[mail]
 	address = recipient@example.com
+
+	[smtp]
 	password = password
 	port = 587
 	server = smtp.gmail.com
@@ -25,7 +27,7 @@ Define some tests a la [Nose](http://somethingaboutorange.com/mrl/projects/nose/
 
 Run them every 10 seconds:
 
-	PYTHONPATH="$PWD" PATH="$PATH:$PWD/bin" pagerunit --loop example.py
+	pagerunit --loop example.py
 
 ## Installation
 
