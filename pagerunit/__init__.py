@@ -30,7 +30,7 @@ DEFAULTS = {'mail': {'batch': False,
                     'recovery_body': 'RECOVERY {name} on {fqdn}'},
             'smtp': {'port': 587,
                      'server': 'smtp.gmail.com'},
-            'state': {'dirname': '/var/run/pagerunit'}}
+            'state': {'dirname': '/var/lib/pagerunit'}}
 
 def _strip(s):
     """
