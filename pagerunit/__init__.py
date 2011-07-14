@@ -20,6 +20,7 @@ import smtp
 # are placed before the config files are opened.
 DEFAULTS = {'mail': {'batch': False,
                      'batch_subject': '{problems} PROBLEMS, {recoveries} RECOVERIES on {fqdn}',
+                     'heartbeat': False,
                      'problem_body': '{exc}\n\n\t{line}\n\n{doc}',
                      'problem_subject': 'PROBLEM {name} on {fqdn}',
                      'recovery_body': '{doc}',
@@ -123,6 +124,8 @@ class PagerUnit(object):
             return None
         if not self.cfg.has_option('mail', 'address'):
             return None
+        if not len(results) and not self.cfg.getboolean('mail', 'heartbeat'):
+            return None
 
         # Create a batch MIMEJSON part and a MIMEText part for each
         # problem or recovery result.
@@ -155,6 +158,8 @@ class PagerUnit(object):
         if not self.cfg.getboolean('sms', 'batch'):
             return None
         if not self.cfg.has_option('sms', 'address'):
+            return None
+        if not len(results):
             return None
 
         # Split the results into problems and recoveries.
