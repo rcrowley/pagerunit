@@ -26,40 +26,32 @@ install: install-bin install-lib install-man
 
 install-bin:
 	install -d $(DESTDIR)$(bindir)
-	install bin/pagerunit $(DESTDIR)$(bindir)/
+	find bin -type f -printf %P\\0 | xargs -0r -I__ install bin/__ $(DESTDIR)$(bindir)/__
 
 install-lib:
-	find pagerunit -type d -printf %P\\0 | xargs -0 -I__ install -d $(DESTDIR)$(pydir)/pagerunit/__
-	find pagerunit -type f -name \*.py -printf %P\\0 | xargs -0 -I__ install -m644 pagerunit/__ $(DESTDIR)$(pydir)/pagerunit/__
+	find pagerunit -type d -printf %P\\0 | xargs -0r -I__ install -d $(DESTDIR)$(pydir)/pagerunit/__
+	find pagerunit -type f -name \*.py -printf %P\\0 | xargs -0r -I__ install -m644 pagerunit/__ $(DESTDIR)$(pydir)/pagerunit/__
 	PYTHONPATH=$(DESTDIR)$(pydir) $(PYTHON) -mcompileall $(DESTDIR)$(pydir)/pagerunit
 
 install-man:
-	install -d $(DESTDIR)$(mandir)/man1
-	install -m644 man/man1/pagerunit.1 $(DESTDIR)$(mandir)/man1/
-	install -d $(DESTDIR)$(mandir)/man5
-	install -m644 man/man5/pagerunit.5 $(DESTDIR)$(mandir)/man5/
-	install -d $(DESTDIR)$(mandir)/man7
-	install -m644 man/man7/pagerunit.7 $(DESTDIR)$(mandir)/man7/
+	find man -type d -printf %P\\0 | xargs -0r -I__ install -d $(DESTDIR)$(mandir)/__
+	find man -type f -name \*.[12345678].gz -printf %P\\0 | xargs -0r -I__ install -m644 man/__ $(DESTDIR)$(mandir)/__
 
 uninstall: uninstall-bin uninstall-lib uninstall-man
 
 uninstall-bin:
-	rm -f $(DESTDIR)$(bindir)/pagerunit
-	rmdir -p --ignore-fail-on-non-empty $(DESTDIR)$(bindir)
+	find bin -type f -printf %P\\0 | xargs -0r -I__ rm -f $(DESTDIR)$(bindir)/__
+	rmdir -p --ignore-fail-on-non-empty $(DESTDIR)$(bindir) || true
 
 uninstall-lib:
-	find $(DESTDIR)$(pydir)/pagerunit -delete
-	rmdir -p --ignore-fail-on-non-empty $(DESTDIR)$(pydir)
+	find pagerunit -type f -name \*.py -printf %P\\0 | xargs -0r -I__ rm -f $(DESTDIR)$(pydir)/pagerunit/__ $(DESTDIR)$(pydir)/pagerunit/__c
+	find pagerunit -depth -mindepth 1 -type d -printf %P\\0 | xargs -0r -I__ rmdir $(DESTDIR)$(pydir)/pagerunit/__ || true
+	rmdir -p --ignore-fail-on-non-empty $(DESTDIR)$(pydir)/pagerunit || true
 
 uninstall-man:
-	rm -f \
-		$(DESTDIR)$(mandir)/man1/pagerunit.1 \
-		$(DESTDIR)$(mandir)/man5/pagerunit.5 \
-		$(DESTDIR)$(mandir)/man7/pagerunit.7
-	rmdir -p --ignore-fail-on-non-empty \
-		$(DESTDIR)$(mandir)/man1 \
-		$(DESTDIR)$(mandir)/man5 \
-		$(DESTDIR)$(mandir)/man7
+	find man -type f -name \*.[12345678].gz -printf %P\\0 | xargs -0r -I__ rm -f $(DESTDIR)$(mandir)/__
+	find man -depth -mindepth 1 -type d -printf %P\\0 | xargs -0r -I__ rmdir $(DESTDIR)$(mandir)/__ || true
+	rmdir -p --ignore-fail-on-non-empty $(DESTDIR)$(mandir) || true
 
 build: build-deb build-pypi
 
@@ -97,6 +89,7 @@ deploy-pypi:
 
 man:
 	find man -name \*.ronn | xargs -n1 ronn --manual=PagerUnit --style=toc
+	find man -name \*.[12345678] | xargs gzip
 
 gh-pages: man
 	mkdir -p gh-pages
