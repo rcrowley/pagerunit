@@ -35,7 +35,8 @@ install-lib:
 
 install-man:
 	find man -type d -printf %P\\0 | xargs -0r -I__ install -d $(DESTDIR)$(mandir)/__
-	find man -type f -name \*.[12345678].gz -printf %P\\0 | xargs -0r -I__ install -m644 man/__ $(DESTDIR)$(mandir)/__
+	find man -type f -name \*.[12345678] -printf %P\\0 | xargs -0r -I__ install -m644 man/__ $(DESTDIR)$(mandir)/__
+	find man -type f -name \*.[12345678] -printf %P\\0 | xargs -0r -I__ gzip $(DESTDIR)$(mandir)/__
 
 uninstall: uninstall-bin uninstall-lib uninstall-man
 
@@ -49,7 +50,7 @@ uninstall-lib:
 	rmdir -p --ignore-fail-on-non-empty $(DESTDIR)$(pydir)/pagerunit || true
 
 uninstall-man:
-	find man -type f -name \*.[12345678].gz -printf %P\\0 | xargs -0r -I__ rm -f $(DESTDIR)$(mandir)/__
+	find man -type f -name \*.[12345678] -printf %P\\0 | xargs -0r -I__ rm -f $(DESTDIR)$(mandir)/__.gz
 	find man -depth -mindepth 1 -type d -printf %P\\0 | xargs -0r -I__ rmdir $(DESTDIR)$(mandir)/__ || true
 	rmdir -p --ignore-fail-on-non-empty $(DESTDIR)$(mandir) || true
 
@@ -89,7 +90,6 @@ deploy-pypi:
 
 man:
 	find man -name \*.ronn | xargs -n1 ronn --manual=PagerUnit --style=toc
-	find man -name \*.[12345678] | xargs gzip
 
 gh-pages: man
 	mkdir -p gh-pages
