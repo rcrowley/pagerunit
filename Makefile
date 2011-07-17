@@ -14,7 +14,7 @@ all:
 
 clean:
 	rm -rf \
-		control *.deb \
+		*.deb \
 		setup.py build dist *.egg *.egg-info \
 		man/man*/*.html
 	find . -name \*.pyc -delete
